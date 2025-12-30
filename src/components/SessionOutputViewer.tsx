@@ -52,6 +52,7 @@ export function SessionOutputViewer({ session, onClose, className }: SessionOutp
   const fullscreenScrollRef = useRef<HTMLDivElement>(null);
   const fullscreenMessagesEndRef = useRef<HTMLDivElement>(null);
   const unlistenRefs = useRef<UnlistenFn[]>([]);
+  const isProgrammaticScrollRef = useRef(false);
   const { getCachedOutput, setCachedOutput } = useOutputCache();
 
   // Auto-scroll logic similar to AgentExecution
@@ -69,7 +70,12 @@ export function SessionOutputViewer({ session, onClose, className }: SessionOutp
     if (!hasUserScrolled) {
       const endRef = isFullscreen ? fullscreenMessagesEndRef.current : outputEndRef.current;
       if (endRef) {
+        isProgrammaticScrollRef.current = true;
         endRef.scrollIntoView({ behavior: 'smooth' });
+        // Reset flag after scroll completes
+        setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+        }, 0);
       }
     }
   };
@@ -476,15 +482,18 @@ export function SessionOutputViewer({ session, onClose, className }: SessionOutp
                 </div>
               </div>
             ) : (
-              <div 
-                className="h-full overflow-y-auto p-6 space-y-3" 
+              <div
+                className="h-full overflow-y-auto p-6 space-y-3"
                 ref={scrollAreaRef}
                 onScroll={() => {
+                  // Skip if this is a programmatic scroll from scrollIntoView
+                  if (isProgrammaticScrollRef.current) return;
+
                   // Mark that user has scrolled manually
                   if (!hasUserScrolled) {
                     setHasUserScrolled(true);
                   }
-                  
+
                   // If user scrolls back to bottom, re-enable auto-scroll
                   if (isAtBottom()) {
                     setHasUserScrolled(false);
@@ -610,15 +619,18 @@ export function SessionOutputViewer({ session, onClose, className }: SessionOutp
 
           {/* Modal Content */}
           <div className="flex-1 overflow-hidden p-6">
-            <div 
+            <div
               ref={fullscreenScrollRef}
               className="h-full overflow-y-auto space-y-3"
               onScroll={() => {
+                // Skip if this is a programmatic scroll from scrollIntoView
+                if (isProgrammaticScrollRef.current) return;
+
                 // Mark that user has scrolled manually
                 if (!hasUserScrolled) {
                   setHasUserScrolled(true);
                 }
-                
+
                 // If user scrolls back to bottom, re-enable auto-scroll
                 if (isAtBottom()) {
                   setHasUserScrolled(false);
